@@ -3,6 +3,9 @@
 #include <fstream>
 #include <algorithm>
 
+#include "../../../../include/Image.h"
+#pragma comment(lib, "../lib/ImageProcessing.lib")
+
 
 
 void Scene::Initialize (int num_vertices, int num_indices, 
@@ -526,15 +529,39 @@ Mesh* Scene::CreateSurfaceMesh( float size )
 
     auto vertices = current_vb_ptr;
 
-    float* height_map;
-    GenerateHeightMap(&height_map, 256);
+    
+    auto height_map = GenerateHeightMap(256);
 
     for (auto i = 0; i < num_vertices_x; i++) {
         for (auto j = 0; j < num_vertices_y; j++) {
             auto vertex_idx = j * num_vertices_x + i;
-            vertices[vertex_idx].Position = { i * 5.0f, scale * height_map[vertex_idx], j * 5.0f };
+            vertices[vertex_idx].Position = { i * 2.5f, scale * height_map[i][j], j * 2.5f };
         }
     }
+
+    for (auto i = 1; i < num_vertices_x-1; i++) {
+        for (auto j = 1; j < num_vertices_y-1; j++) {
+            auto vertex_idx = j * num_vertices_x + i;
+
+            auto pos1 = DirectX::XMLoadFloat3(&vertices[j * num_vertices_x + i].Position);
+            auto pos2 = DirectX::XMLoadFloat3(&vertices[j * num_vertices_x + i + 1].Position);
+            auto pos3 = DirectX::XMLoadFloat3(&vertices[(j + 1) * num_vertices_x + i].Position);
+
+            auto tan_x = DirectX::XMVectorSubtract(pos2, pos1);
+            auto tan_y = DirectX::XMVectorSubtract(pos3, pos1);
+
+            auto normal = DirectX::XMVector3Cross(tan_y, tan_x);
+            normal = DirectX::XMVector3Normalize(normal);
+
+
+
+
+             DirectX::XMStoreFloat3(&vertices[vertex_idx].Normal, normal);
+        }
+    }
+
+
+
     curVbOffset += num_vertices;
 
     auto indices = ibPointer + curIbOffset;
@@ -564,40 +591,44 @@ Mesh* Scene::CreateSurfaceMesh( float size )
     new_mesh->instancesOffset = curMeshInstancesOffset;
     curMeshInstancesOffset += DEFAULT_NUM_INSTANCES;
 
-    delete[] height_map;
+    //delete[] height_map;
     return new_mesh;
 }
 
+void Scene::CalculateNormals(Mesh* mesh)
+{
+    
+}
 
-void Scene::GenerateHeightMap(float** height_map, int size) {
+
+CoreEx::Image<float> Scene::GenerateHeightMap( int size ) {
     srand(12345);
 
+
     // generate initial random map
-    auto new_size = 8;
-    auto new_map = new float[new_size * new_size];
+    auto new_size = 4;
+    CoreEx::Image<float> test_image(new_size, new_size);
+    test_image.Clear();
     auto magnitude = 1.0f;
     for ( auto i = 0; i < new_size; i++ ) {
         for (auto j = 0; j < new_size; j++) {
-            auto idx = j * new_size + i;
-            new_map[idx] = (float)(rand() % 16384) / 16384.0f - 0.5f;
+            test_image[i][j] = (float)(rand() % 16384) / 16384.0f - 0.5f;
         }
     }
 
 
-    while (new_size < size) {
-        magnitude /= 1.5f;
-        new_size *= 2;
-        *height_map = new float[new_size * new_size];
 
-        for (auto i = 0; i < new_size; i++) {
-            for (auto j = 0; j < new_size; j++) {
-                auto idx = j * new_size + i;
-                (*height_map)[idx] = 0.0f;
-            }
-        }
+    while (new_size < size) {
+        
+
+        magnitude /= 2.0f;
+        new_size *= 2;
+
+
+        test_image.Resize(new_size, new_size);
 
         // fill the new map with the old points
-        for (auto i = 1; i < new_size/2-1; i++) {
+        /*for (auto i = 1; i < new_size/2-1; i++) {
             for (auto j = 1; j < new_size/2-1; j++) {
                 auto old_idx = j * new_size / 2 + i;
                 auto new_idx = 2 * j * new_size + i * 2;
@@ -631,18 +662,15 @@ void Scene::GenerateHeightMap(float** height_map, int size) {
             }
         }
 
-        delete[] resized_map;
+        delete[] resized_map;*/
 
         // add new random value to the map
         for (auto i = 1; i < new_size - 1; i++) {
             for (auto j = 1; j < new_size - 1; j++) {
                 auto idx = j * new_size + i;
-                (*height_map)[idx] += magnitude * (float)(rand() % 16384) / 16384.0f - magnitude/2;
+                test_image[i][j] += magnitude * (float)(rand() % 16384) / 16384.0f - magnitude/2;
             }
         }
-
-
-        delete[] new_map;
-        new_map = *height_map;
     }
+    return test_image;
 }

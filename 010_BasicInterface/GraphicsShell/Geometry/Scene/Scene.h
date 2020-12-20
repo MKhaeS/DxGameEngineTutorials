@@ -19,6 +19,9 @@ constexpr auto DEFAULT_NUM_INDICES   = 1000000;
 constexpr auto DEFAULT_NUM_MESHES    = 100;
 constexpr auto DEFAULT_NUM_INSTANCES = 100;
 
+namespace CoreEx {
+    template<typename T> class Image;
+}
 
 class Scene {
 public:
@@ -47,7 +50,8 @@ public:
 
     //
     static Mesh* CreateSurfaceMesh(float size );
-    static void GenerateHeightMap(float** heigth_map, int size);
+    static void CalculateNormals(Mesh* mesh);
+    static CoreEx::Image<float> GenerateHeightMap(int size);
 
 
 

@@ -3,6 +3,8 @@
 
 #include "GraphicsShell/GraphicsShell.h"
 
+
+
 LRESULT CALLBACK WndProc ( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
 void UserActions ( );
 
@@ -75,6 +77,8 @@ void UserActions ( ) {
         GraphicsShell::SetMeshInstancePosition ( box_instance, position_x, position_y, position_z );
         GraphicsShell::UpdateMeshInstanceModelMatrix ( box_instance );
     }*/
+
+    
 
     auto surface_mesh = Scene::CreateSurfaceMesh(100);
     auto surface_instance = GraphicsShell::CreateMeshInstance(surface_mesh);
